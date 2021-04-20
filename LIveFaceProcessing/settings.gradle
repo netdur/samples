@@ -1,0 +1,3 @@
+include ':trueface-sdk-3.1.0'
+include ':app'
+rootProject.name = "LIve Face Processing"
