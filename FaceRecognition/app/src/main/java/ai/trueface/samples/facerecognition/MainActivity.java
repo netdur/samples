@@ -1,17 +1,14 @@
 package ai.trueface.samples.facerecognition;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.InputType;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -19,10 +16,16 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+
 import com.github.dhaval2404.imagepicker.ImagePicker;
+
+import java.io.InputStream;
 
 import ai.trueface.sdk.core.Candidate;
 import ai.trueface.sdk.core.Faceprint;
+import ai.trueface.sdk.core.Image;
 import ai.trueface.sdk.core.SDK;
 
 public class MainActivity extends AppCompatActivity {
@@ -33,8 +36,6 @@ public class MainActivity extends AppCompatActivity {
 
     TextView label;
 
-    SDK sdk = App.getSDK();
-
     Faceprint lastFaceprint;
 
     @Override
@@ -43,25 +44,11 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         takePhotoButton = findViewById(R.id.button);
-        takePhotoButton.setOnClickListener(new View.OnClickListener()
-        {
-            @Override
-            public void onClick(View v)
-            {
-                pickUpImage();
-            }
-        });
+        takePhotoButton.setOnClickListener(v -> pickUpImage());
 
         enrollButton = findViewById(R.id.button2);
         enrollButton.setVisibility(View.INVISIBLE);
-        enrollButton.setOnClickListener(new View.OnClickListener()
-        {
-            @Override
-            public void onClick(View v)
-            {
-                enrollPerson();
-            }
-        });
+        enrollButton.setOnClickListener(v -> enrollPerson());
 
         imageView = findViewById(R.id.imageView);
 
@@ -77,29 +64,21 @@ public class MainActivity extends AppCompatActivity {
         builder.setView(input);
 
         final Context self = this;
-        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                String name = input.getText().toString().trim();
-                if (!name.isEmpty()) {
-                    sdk.enrollTemplate(lastFaceprint, name);
-                    Toast.makeText(self, "Enroll Success", Toast.LENGTH_SHORT).show();
-                }
+        builder.setPositiveButton("OK", (dialog, which) -> {
+            String name = input.getText().toString().trim();
+            if (!name.isEmpty()) {
+                App.getSDK().enrollFaceprint(lastFaceprint, name);
+                Toast.makeText(self, "Enroll Success", Toast.LENGTH_SHORT).show();
             }
         });
-        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.cancel();
-            }
-        });
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
 
         builder.show();
     }
 
     public void pickUpImage() {
         ImagePicker.Companion.with(this)
-                .compress(1024)
+                .compress(2048)
                 .maxResultSize(1080, 1080)
                 .start();
     }
@@ -113,15 +92,22 @@ public class MainActivity extends AppCompatActivity {
             Uri fileUri = data.getData();
             imageView.setImageURI(fileUri);
 
-            String filePath = ImagePicker.Companion.getFilePath(data);
-            sdk.setImage(filePath);
-            lastFaceprint = sdk.getLargestFaceFeatureVector();
+            Bitmap bitmap = null;
+            try {
+                InputStream inputStream = getContentResolver().openInputStream(fileUri);
+                bitmap = BitmapFactory.decodeStream(inputStream);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            
+            Image image = App.getSDK().preprocessImage(bitmap);
+            lastFaceprint = App.getSDK().getLargestFaceFeatureVector(image);
             if (lastFaceprint == null) {
                 Toast.makeText(this, "Face not found", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            Candidate[] candidates = sdk.identifyTopCandidates(lastFaceprint, 2);
+            Candidate[] candidates = App.getSDK().identifyTopCandidates(lastFaceprint, 2);
             if (candidates.length == 0) {
                 label.setText("Unknown");
                 enrollButton.setVisibility(View.VISIBLE);

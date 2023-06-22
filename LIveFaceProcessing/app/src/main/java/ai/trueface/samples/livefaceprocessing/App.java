@@ -17,13 +17,11 @@ public class App extends Application {
         super.onCreate();
 
         ConfigurationOptions options = new ConfigurationOptions();
-        // default is 40; adjust for you phone needs
-        options.smallestFaceWidth = 240;
         // default is false, performance vary depends on phone configuration
         options.enableGPU = false;
 
         sdk = new SDK(getApplicationContext(), options);
-        sdk.setLicense("");
+        sdk.setLicense("");  // Setup license key here
     }
 
     static SDK getSDK() {

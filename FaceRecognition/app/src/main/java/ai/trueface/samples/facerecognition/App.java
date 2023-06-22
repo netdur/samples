@@ -21,7 +21,8 @@ public class App extends Application {
         ConfigurationOptions options = new ConfigurationOptions();
 
         sdk = new SDK(getApplicationContext(), options);
-        sdk.setLicense("");
+        sdk.setLicense("");  // Setup license key here
+        Log.d("@Trueface", "is licensed: " + sdk.isLicensed());
 
         ErrorCode errorCode = sdk.createDatabaseConnection("fr.db");
         errorCode = sdk.createLoadCollection("collection");
